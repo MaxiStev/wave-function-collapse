@@ -1,11 +1,21 @@
+use rand::Rng;
+
 use crate::cell::{Cell, CellContent, CellOp};
-pub struct Field<'a> {
-    pub field: array2d::Array2D<Cell<'a>>,
+pub struct Field {
+    pub field: array2d::Array2D<Cell>,
     pub allowed_cells: Vec<CellContent>
 }
-impl Field<'_> {
+impl Field {
     pub fn new(height: usize, width: usize, allowed_cells: Vec<CellContent>) -> Self {
         let mut field = array2d::Array2D::filled_with(Cell::default(), height, width);
+        for row in 0..field.row_len() {
+            for col in 0..field.column_len() {
+                let mut cell = field.get_mut(row, col).unwrap();
+                cell.row = row;
+                cell.col = col;
+            }
+            
+        }
         Self {field, allowed_cells}
     }
     pub fn print(&self) {
@@ -16,11 +26,11 @@ impl Field<'_> {
             println!();
         }
     }
-    fn surrounding(&self, row: usize, col: usize) -> (CellOp, CellOp, CellOp, CellOp) {
-        let top: CellOp = None;
-        let right: CellOp = None;
-        let bottom: CellOp = None;
-        let left: CellOp = None;
+    pub fn surrounding(&self, row: usize, col: usize) -> (CellOp, CellOp, CellOp, CellOp) {
+        let mut top: CellOp = None;
+        let mut right: CellOp = None;
+        let mut bottom: CellOp = None;
+        let mut left: CellOp = None;
         if let Some(pos) = row.checked_sub(1) {
             if let Some(cell) = self.field.get(pos, col) {
                 top = cell.content;
@@ -43,30 +53,73 @@ impl Field<'_> {
         }
         (top, right, bottom, left)
     }
-    fn lowest_entropy (&self) -> Vec<&Cell>{
-        let field_ref = self.allowed_cells.iter()
+    pub fn get_allowed_cells(&self) -> Vec<&CellContent> {
+        self.allowed_cells.iter()
             .map(|c| c)
-            .collect::<Vec<&CellContent>>();
-        let mut to_collapse = self.field.elements_row_major_iter()
+            .collect::<Vec<&CellContent>>()
+    }
+    fn to_collapse(&self) -> Vec<&Cell> {
+        self.field.elements_row_major_iter()
             .filter(|c| c.content.is_some())
-            .collect::<Vec<&Cell>>();
+            .collect::<Vec<&Cell>>()
+    }
+    pub fn lowest_entropy (&self) -> Vec<&Cell>{
+        let mut to_collapse = self.to_collapse();
 
-        // let mut lowest = usize::max_value();
-        // for row in 0..self.field.row_len() {
-        //     for col in 0..self.field.column_len() {
-        //         if let Some(cell) = self.field.get(row, col) {
-        //             if cell.content.is_none() {
-        //                 lowest = lowest.min(Cell::possible_tuple(&field_ref, self.surrounding(row, col)).len());
-        //             }
-        //         }
-        //     }
-        // }
         let lowest = to_collapse.iter()
-            .map(|_| Cell::possible_tuple(&field_ref, self.surrounding(1,1)).len())
+            .map(|c| c.possible_self(self).len())
             .reduce(|acc, item| {
                 if acc < item {acc} else {item}
             }).expect("No item with entropy");
-        to_collapse.retain(|cell| cell.poss2(&field_ref).len() == lowest);
+        to_collapse.retain(|cell| cell.possible_self(self).len() == lowest);
         return to_collapse;
+    }
+
+    pub fn get_random_cell_to_collapse(&self) -> Option<&Cell>{
+        if self.to_collapse().len() > 0 {
+            let to_collapse = self.lowest_entropy();
+            let mut rng = rand::prelude::thread_rng();
+            let cell = to_collapse.get(rng.gen_range(0..to_collapse.len())).unwrap();
+            Some(*cell)
+        } else {
+            None
+        }
+    }
+
+}
+impl Field {
+    pub fn collapse_random_cell(&mut self) {
+        let tmp = self.allowed_cells.iter()
+            .map(|c| c.to_owned())
+            .collect::<Vec<CellContent>>();
+
+            let row: usize;
+            let col: usize;
+            {
+                if let Some(f) = self.get_random_cell_to_collapse() {
+                    row = f.row;
+                    col = f.col;
+                } else {
+                    return;
+                }
+            }
+            let cell = self.field.get_mut(row, col).unwrap();
+            cell.collapse(&tmp);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn lowest_entropy() {
+        let trb = CellContent {content: '╠', top: 2, right: 2, bottom: 2, ..Default::default()};
+        let trl = CellContent {content: '╩', top: 2, right: 2, left: 2, ..Default::default()};
+        let tbl = CellContent {content: '╣', top: 2, bottom: 2, left: 2, ..Default::default()};
+        let rbl = CellContent {content: '╦', right: 2, bottom: 2, left: 2, ..Default::default()};
+        let empty = CellContent {content: ' ', ..Default::default()};
+        let mut field = Field::new(2,2, vec![trb,trl,tbl,rbl, empty]);
+        field.field.get_mut(0,0).unwrap().content = Some(empty);
+        assert_eq!(field.lowest_entropy().len(), 3);
     }
 }
