@@ -58,9 +58,9 @@ impl Field {
             .map(|c| c)
             .collect::<Vec<&CellContent>>()
     }
-    fn to_collapse(&self) -> Vec<&Cell> {
+    pub fn to_collapse(&self) -> Vec<&Cell> {
         self.field.elements_row_major_iter()
-            .filter(|c| c.content.is_some())
+            .filter(|c| c.content.is_none())
             .collect::<Vec<&Cell>>()
     }
     pub fn lowest_entropy (&self) -> Vec<&Cell>{
@@ -85,9 +85,6 @@ impl Field {
             None
         }
     }
-
-}
-impl Field {
     pub fn collapse_random_cell(&mut self) {
         let tmp = self.allowed_cells.iter()
             .map(|c| c.to_owned())
@@ -95,14 +92,13 @@ impl Field {
 
             let row: usize;
             let col: usize;
-            {
                 if let Some(f) = self.get_random_cell_to_collapse() {
                     row = f.row;
                     col = f.col;
                 } else {
+                    println!("nothing to collapse");
                     return;
                 }
-            }
             let cell = self.field.get_mut(row, col).unwrap();
             cell.collapse(&tmp);
     }
@@ -120,6 +116,6 @@ mod test {
         let empty = CellContent {content: ' ', ..Default::default()};
         let mut field = Field::new(2,2, vec![trb,trl,tbl,rbl, empty]);
         field.field.get_mut(0,0).unwrap().content = Some(empty);
-        assert_eq!(field.lowest_entropy().len(), 3);
+        assert_eq!(field.lowest_entropy().len(), 2);
     }
 }

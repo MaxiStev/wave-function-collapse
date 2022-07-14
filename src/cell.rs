@@ -67,7 +67,7 @@ impl Cell {
     }
     pub fn collapse(&mut self, possible: &[CellContent]) {
         if self.content.is_some() {
-            return ;
+            panic!();
         }
         let mut rng = rand::prelude::thread_rng();
         self.content = Some(possible.get(rng.gen_range(0..possible.len())).unwrap().to_owned());
