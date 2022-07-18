@@ -14,24 +14,59 @@ mod field;
 use cell::CellContent;
 use field::Field;
 
+fn default_chars() -> Vec<CellContent> {
+    vec![
+        CellContent {content: ' ', ..Default::default()},
+        CellContent {content: '╠', top: 2, right: 2, bottom: 2, ..Default::default()},
+        CellContent {content: '╩', top: 2, right: 2, left: 2, ..Default::default()},
+        CellContent {content: '╣', top: 2, bottom: 2, left: 2, ..Default::default()},
+        CellContent {content: '╦', right: 2, bottom: 2, left: 2, ..Default::default()},
+        CellContent {content: '║', top: 2, bottom: 2, ..Default::default()},
+        CellContent {content: '═', right: 2, left: 2, ..Default::default()},
+        CellContent {content: '╚', top: 2, right: 2, ..Default::default()},
+        CellContent {content: '╝', top: 2, left: 2, ..Default::default()},
+        CellContent {content: '╔', right: 2, bottom: 2, ..Default::default()},
+        CellContent {content: '╗', bottom: 2, left: 2, ..Default::default()},
+        CellContent {content: '╬', top: 2, right: 2, bottom: 2, left:2 },
+        CellContent {content: '│', top: 1, bottom: 1, ..Default::default()},
+        CellContent {content: '┤', top: 1, bottom: 1, left: 1, ..Default::default()},
+        CellContent {content: '╡', top: 1, bottom: 1, left: 2, ..Default::default()},
+        CellContent {content: '╢', top: 2, bottom: 2, left: 1, ..Default::default()},
+        CellContent {content: '╖', bottom: 2, left: 1, ..Default::default()},
+        CellContent {content: '╕', bottom: 1, left: 2, ..Default::default()},
+        CellContent {content: '╜', top: 2, left: 1, ..Default::default()},
+        CellContent {content: '╛', top: 1, left: 2, ..Default::default()},
+        CellContent {content: '┐', bottom: 1, left: 1, ..Default::default()},
+        CellContent {content: '└', top: 1, right: 1, ..Default::default()},
+        CellContent {content: '┴', top: 1, right:1, left: 1, ..Default::default()},
+        CellContent {content: '┬', right: 1, bottom: 1, left: 1,..Default::default()},
+        CellContent {content: '├', top: 1, right: 1, bottom: 1, ..Default::default()},
+        CellContent {content: '─', right: 1, left: 1, ..Default::default()},
+        CellContent {content: '┼', top:1 , right:1, bottom:1, left: 1, ..Default::default()},
+        CellContent {content: '╞', top: 1, right: 2, bottom:1, ..Default::default()},
+        CellContent {content: '╟', top: 2, right: 1, bottom: 2, ..Default::default()},
+        CellContent {content: '╧', top: 1, right: 2, left: 2, ..Default::default()},
+        CellContent {content: '╨', top: 2, right: 1, left: 1, ..Default::default()},
+        CellContent {content: '╤', right: 2, bottom: 1, left: 2, ..Default::default()},
+        CellContent {content: '╥', right: 1, bottom: 2, left: 1, ..Default::default()},
+        CellContent {content: '╙', top: 2, right: 1, ..Default::default()},
+        CellContent {content: '╘', top: 1, right: 2, ..Default::default()},
+        CellContent {content: '╒', right: 2, bottom: 1, ..Default::default()},
+        CellContent {content: '╓', right:1 , bottom: 2, ..Default::default()},
+        CellContent {content: '╫', top: 2, right: 1, bottom: 2, left: 1, ..Default::default()},
+        CellContent {content: '╪', top: 1, right: 2, bottom: 1, left: 2, ..Default::default()},
+        CellContent {content: '┘', top: 1, left: 1, ..Default::default()},
+        CellContent {content: '┌', right: 1, bottom: 1, ..Default::default()},
+        // CellContent {content: '', ..Default::default()},
+
+    ]
+}
+
 fn main() {
     println!("Hello, world!");
-    let trb = CellContent {content: '╠', top: 2, right: 2, bottom: 2, ..Default::default()};
-    let trl = CellContent {content: '╩', top: 2, right: 2, left: 2, ..Default::default()};
-    let tbl = CellContent {content: '╣', top: 2, bottom: 2, left: 2, ..Default::default()};
-    let rbl = CellContent {content: '╦', right: 2, bottom: 2, left: 2, ..Default::default()};
-    let tb = CellContent {content: '║', top: 2, bottom: 2, ..Default::default()};
-    let rl = CellContent {content: '═', right: 2, left: 2, ..Default::default()};
-    let tr = CellContent {content: '╚', top: 2, right: 2, ..Default::default()};
-    let tl = CellContent {content: '╝', top: 2, left: 2, ..Default::default()};
-    let rb = CellContent {content: '╔', right: 2, bottom: 2, ..Default::default()};
-    let bl = CellContent {content: '╗', bottom: 2, left: 2, ..Default::default()};
 
-    let empty = CellContent {content: ' ', ..Default::default()};
-    // let all = CellContent {content: '+', top: 2, right: 2, bottom: 2, left:2 };
 
-    // let celops = vec![trb,trl,tbl,rbl,empty];
-    let celops = vec![trb,trl,tbl,rbl,tb,rl,tr,tl,rb,bl,empty];
+    let celops = default_chars();
     let mut field = Field::new(50,50, celops);
     while field.to_collapse().len() > 0 {
         field.print();
