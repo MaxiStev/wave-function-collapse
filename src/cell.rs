@@ -22,7 +22,7 @@ impl PartialEq for CellContent {
             self.top == other.top &&
             self.right == other.right &&
             self.bottom == other.bottom &&
-            self.left == other.bottom
+            self.left == other.left
     }
 }
 
@@ -41,16 +41,16 @@ impl PartialEq for Cell {
     }
 }
 impl Cell {
-    pub fn possible_tuple<'a>(allowed: &[&'a CellContent], surrounding: (CellOp, CellOp, CellOp, CellOp)) -> Vec<&'a CellContent> {
+    pub fn possible_tuple(allowed: &[CellContent], surrounding: (CellOp, CellOp, CellOp, CellOp)) -> Vec<CellContent> {
         Cell::possible(allowed, surrounding.0, surrounding.1, surrounding.2, surrounding.3)
     }
 
-    pub fn possible_self<'a>(&self, field: &'a Field) -> Vec<&'a CellContent> {
+    pub fn possible_self<'a>(&self, field: &'a Field) -> Vec<CellContent> {
         Cell::possible_tuple(&field.get_allowed_cells(), field.surrounding(self.row, self.col))
     }
 
-    pub fn possible<'a>(allowed: &[&'a CellContent], top: CellOp, right: CellOp, bottom: CellOp, left: CellOp) -> Vec<&'a CellContent> {
-        let mut all: Vec<&CellContent> = allowed.to_vec();
+    pub fn possible(allowed: &[CellContent], top: CellOp, right: CellOp, bottom: CellOp, left: CellOp) -> Vec<CellContent> {
+        let mut all: Vec<CellContent> = allowed.to_vec();
         if let Some(cell) = top {
             all.retain(|c| c.top == cell.bottom);
         }

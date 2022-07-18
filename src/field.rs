@@ -8,6 +8,7 @@ pub struct Field {
 impl Field {
     pub fn new(height: usize, width: usize, allowed_cells: Vec<CellContent>) -> Self {
         let mut field = array2d::Array2D::filled_with(Cell::default(), height, width);
+        println!("{}, {}", field.row_len(), field.column_len());
         for row in 0..field.row_len() {
             for col in 0..field.column_len() {
                 let mut cell = field.get_mut(row, col).unwrap();
@@ -53,10 +54,10 @@ impl Field {
         }
         (top, right, bottom, left)
     }
-    pub fn get_allowed_cells(&self) -> Vec<&CellContent> {
+    pub fn get_allowed_cells(&self) -> Vec<CellContent> {
         self.allowed_cells.iter()
-            .map(|c| c)
-            .collect::<Vec<&CellContent>>()
+            .map(|c| *c)
+            .collect::<Vec<CellContent>>()
     }
     pub fn to_collapse(&self) -> Vec<&Cell> {
         self.field.elements_row_major_iter()
@@ -85,22 +86,26 @@ impl Field {
             None
         }
     }
-    pub fn collapse_random_cell(&mut self) {
+    pub fn collapse_random_cell(&mut self, cell: &Cell) {
         let tmp = self.allowed_cells.iter()
-            .map(|c| c.to_owned())
+            .map(|&c| c.to_owned())
             .collect::<Vec<CellContent>>();
 
-            let row: usize;
-            let col: usize;
-                if let Some(f) = self.get_random_cell_to_collapse() {
-                    row = f.row;
-                    col = f.col;
-                } else {
-                    println!("nothing to collapse");
-                    return;
-                }
+            let row = cell.row;
+            let col = cell.col;
+        let pos = Cell::possible_tuple(tmp.as_slice(), self.surrounding(row, col))
+            .iter()
+            .map(|c| c.to_owned())
+            .collect::<Vec<CellContent>>();
+                // if let Some(f) = self.get_random_cell_to_collapse() {
+                //     row = f.row;
+                //     col = f.col;
+                // } else {
+                //     println!("nothing to collapse");
+                //     return;
+                // }
             let cell = self.field.get_mut(row, col).unwrap();
-            cell.collapse(&tmp);
+            cell.collapse(pos.as_slice());
     }
 }
 
@@ -117,5 +122,17 @@ mod test {
         let mut field = Field::new(2,2, vec![trb,trl,tbl,rbl, empty]);
         field.field.get_mut(0,0).unwrap().content = Some(empty);
         assert_eq!(field.lowest_entropy().len(), 2);
+    }
+
+    #[test]
+    fn surrounding() {
+        let rbl = CellContent {content: '╦', right: 2, bottom: 2, left: 2, ..Default::default()};
+        let empty = CellContent {content: ' ', ..Default::default()};
+        let mut field = Field::new(3,3, vec![rbl, empty]);
+        let cell = field.field.get(1,1).unwrap();
+        assert!(cell.row == 1 && cell.col== 1 && cell.content == None);
+        field.field.get_mut(0, 1).unwrap().content = Some(rbl);
+        let surr= field.surrounding(1, 1);
+        assert_eq!(surr, (Some(rbl), None, None, None));
     }
 }
