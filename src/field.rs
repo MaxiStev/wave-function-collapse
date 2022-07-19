@@ -68,6 +68,26 @@ impl Field {
             None
         }
     }
+    pub fn complete(&mut self, print: bool, progress: bool) {
+        let total = self.to_collapse().len();
+        while self.to_collapse().len() > 0 {
+            if print {
+                self.print();
+                println!("----------");
+            }
+            let row: usize;
+            let col: usize;
+            {
+                let cell = self.get_random_cell_to_collapse().unwrap();
+                row = cell.row;
+                col = cell.col;
+            }
+            self.collapse_cell(row, col);
+            if progress {
+            println!("({}/{})", total - self.to_collapse().len(), total);
+            }
+        }
+    }
     pub fn collapse_cell(&mut self, row: usize, col: usize) {
         let cont: CellContent;
         // let (top, right, bottom, left) = self.surrounding(row, col);
