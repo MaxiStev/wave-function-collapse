@@ -1,5 +1,4 @@
 use rand::Rng;
-use crate::field::Field;
 pub type CellOp = Option<CellContent>;
 #[derive(Debug, Clone, Copy)]
 pub struct CellContent {
@@ -30,7 +29,8 @@ impl PartialEq for CellContent {
 pub struct Cell {
     pub content: CellOp,
     pub row: usize,
-    pub col: usize
+    pub col: usize,
+    pub possible: Vec<CellContent>,
     //position row, col
 }
 impl PartialEq for Cell {
@@ -41,40 +41,39 @@ impl PartialEq for Cell {
     }
 }
 impl Cell {
-    pub fn possible_tuple(allowed: &[CellContent], surrounding: (CellOp, CellOp, CellOp, CellOp)) -> Vec<CellContent> {
-        Cell::possible(allowed, surrounding.0, surrounding.1, surrounding.2, surrounding.3)
+    pub fn entropy(&self) -> usize {
+        self.possible.len()
     }
-
-    pub fn possible_self<'a>(&self, field: &'a Field) -> Vec<CellContent> {
-        Cell::possible_tuple(&field.get_allowed_cells(), field.surrounding(self.row, self.col))
+    pub fn update_top(&mut self, cont: CellContent) {
+        self.possible.retain(|c| c.top == cont.bottom)
     }
-
-    pub fn possible(allowed: &[CellContent], top: CellOp, right: CellOp, bottom: CellOp, left: CellOp) -> Vec<CellContent> {
-        let mut all: Vec<CellContent> = allowed.to_vec();
-        if let Some(cell) = top {
-            all.retain(|c| c.top == cell.bottom);
-        }
-        if let Some(cell) = right {
-            all.retain(|c| c.right == cell.left);
-        }
-        if let Some(cell) = bottom {
-            all.retain(|c| c.bottom == cell.top);
-        }
-        if let Some(cell) = left {
-            all.retain(|c| c.left == cell.right);
-        }
-        all
+    pub fn update_right(&mut self, cont: CellContent) {
+        self.possible.retain(|c| c.right == cont.left)
     }
-    pub fn collapse(&mut self, possible: &[CellContent]) {
+    pub fn update_bottom(&mut self, cont: CellContent) {
+        self.possible.retain(|c| c.bottom == cont.top)
+    }
+    pub fn update_left(&mut self, cont: CellContent) {
+        self.possible.retain(|c| c.left == cont.right)
+    }
+    pub fn collapse(&mut self) {
         if self.content.is_some() {
             panic!();
         }
         let mut rng = rand::prelude::thread_rng();
-        self.content = Some(possible.get(rng.gen_range(0..possible.len())).unwrap().to_owned());
+        self.content = Some(self.possible.get(rng.gen_range(0..self.possible.len())).unwrap().to_owned());
+    }
+    pub fn set_possible(&mut self, possible: Vec<CellContent>) {
+        self.possible = possible.iter().map(|c| c.to_owned()).collect::<Vec<CellContent>>();
+    }
+}
+impl Drop for Cell {
+    fn drop(&mut self) {
+        println!("cell dropped");
     }
 }
 impl Default for Cell {
     fn default() -> Self {
-        Cell {content: None, row: 0, col: 0}
+        Cell {content: None, row: 0, col: 0, possible: vec![]}
     }
 }

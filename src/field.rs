@@ -14,6 +14,7 @@ impl Field {
                 let mut cell = field.get_mut(row, col).unwrap();
                 cell.row = row;
                 cell.col = col;
+                cell.set_possible(allowed_cells.to_owned());
             }
             
         }
@@ -27,38 +28,33 @@ impl Field {
             println!();
         }
     }
-    pub fn surrounding(&self, row: usize, col: usize) -> (CellOp, CellOp, CellOp, CellOp) {
-        let mut top: CellOp = None;
-        let mut right: CellOp = None;
-        let mut bottom: CellOp = None;
-        let mut left: CellOp = None;
-        if let Some(pos) = row.checked_sub(1) {
-            if let Some(cell) = self.field.get(pos, col) {
-                top = cell.content;
-            }
-        }
-        if let Some(pos) = col.checked_add(1) {
-            if let Some(cell) = self.field.get(row, pos) {
-                right = cell.content;
-            }
-        }
-        if let Some(pos) = row.checked_add(1) {
-            if let Some(cell) = self.field.get(pos, col) {
-                bottom = cell.content;
-            }
-        }
-        if let Some(pos) = col.checked_sub(1) {
-            if let Some(cell) = self.field.get(row, pos) {
-                left = cell.content;
-            }
-        }
-        (top, right, bottom, left)
-    }
-    pub fn get_allowed_cells(&self) -> Vec<CellContent> {
-        self.allowed_cells.iter()
-            .map(|c| *c)
-            .collect::<Vec<CellContent>>()
-    }
+    // pub fn surrounding(&self, row: usize, col: usize) -> (CellOp, CellOp, CellOp, CellOp) {
+    //     let mut top: CellOp = None;
+    //     let mut right: CellOp = None;
+    //     let mut bottom: CellOp = None;
+    //     let mut left: CellOp = None;
+    //     if let Some(pos) = row.checked_sub(1) {
+    //         if let Some(cell) = self.field.get(pos, col) {
+    //             top = cell.content;
+    //         }
+    //     }
+    //     if let Some(pos) = col.checked_add(1) {
+    //         if let Some(cell) = self.field.get(row, pos) {
+    //             right = cell.content;
+    //         }
+    //     }
+    //     if let Some(pos) = row.checked_add(1) {
+    //         if let Some(cell) = self.field.get(pos, col) {
+    //             bottom = cell.content;
+    //         }
+    //     }
+    //     if let Some(pos) = col.checked_sub(1) {
+    //         if let Some(cell) = self.field.get(row, pos) {
+    //             left = cell.content;
+    //         }
+    //     }
+    //     (top, right, bottom, left)
+    // }
     pub fn to_collapse(&self) -> Vec<&Cell> {
         self.field.elements_row_major_iter()
             .filter(|c| c.content.is_none())
@@ -68,11 +64,11 @@ impl Field {
         let mut to_collapse = self.to_collapse();
 
         let lowest = to_collapse.iter()
-            .map(|c| c.possible_self(self).len())
+            .map(|c| c.entropy())
             .reduce(|acc, item| {
                 if acc < item {acc} else {item}
             }).expect("No item with entropy");
-        to_collapse.retain(|cell| cell.possible_self(self).len() == lowest);
+        to_collapse.retain(|cell| cell.entropy() == lowest);
         return to_collapse;
     }
 
@@ -87,25 +83,32 @@ impl Field {
         }
     }
     pub fn collapse_random_cell(&mut self, cell: &Cell) {
-        let tmp = self.allowed_cells.iter()
-            .map(|&c| c.to_owned())
-            .collect::<Vec<CellContent>>();
-
-            let row = cell.row;
-            let col = cell.col;
-        let pos = Cell::possible_tuple(tmp.as_slice(), self.surrounding(row, col))
-            .iter()
-            .map(|c| c.to_owned())
-            .collect::<Vec<CellContent>>();
-                // if let Some(f) = self.get_random_cell_to_collapse() {
-                //     row = f.row;
-                //     col = f.col;
-                // } else {
-                //     println!("nothing to collapse");
-                //     return;
-                // }
-            let cell = self.field.get_mut(row, col).unwrap();
-            cell.collapse(pos.as_slice());
+        let (row, col) = (cell.row, cell.col);
+        let cont: CellContent;
+        // let (top, right, bottom, left) = self.surrounding(row, col);
+        let cell = self.field.get_mut(row, col).unwrap();
+        cell.collapse();
+        cont = cell.content.unwrap().to_owned();
+        if let Some(pos) = row.checked_sub(1) {
+            if let Some(update_cell) = self.field.get_mut(pos, col) {
+                update_cell.update_top(cont);
+            }
+        }
+        if let Some(pos) = col.checked_add(1) {
+            if let Some(update_cell) = self.field.get_mut(row, pos) {
+                update_cell.update_right(cont);
+            }
+        }
+        if let Some(pos) = row.checked_add(1) {
+            if let Some(update_cell) = self.field.get_mut(pos, col) {
+                update_cell.update_bottom(cont);
+            }
+        }
+        if let Some(pos) = col.checked_sub(1) {
+            if let Some(update_cell) = self.field.get_mut(row, pos) {
+                update_cell.update_left(cont);
+            }
+        }
     }
 }
 
@@ -121,18 +124,20 @@ mod test {
         let empty = CellContent {content: ' ', ..Default::default()};
         let mut field = Field::new(2,2, vec![trb,trl,tbl,rbl, empty]);
         field.field.get_mut(0,0).unwrap().content = Some(empty);
+        field.field.get_mut(1,0).unwrap().update_top(empty);
+        field.field.get_mut(0,1).unwrap().update_top(empty);
         assert_eq!(field.lowest_entropy().len(), 2);
     }
 
-    #[test]
-    fn surrounding() {
-        let rbl = CellContent {content: '╦', right: 2, bottom: 2, left: 2, ..Default::default()};
-        let empty = CellContent {content: ' ', ..Default::default()};
-        let mut field = Field::new(3,3, vec![rbl, empty]);
-        let cell = field.field.get(1,1).unwrap();
-        assert!(cell.row == 1 && cell.col== 1 && cell.content == None);
-        field.field.get_mut(0, 1).unwrap().content = Some(rbl);
-        let surr= field.surrounding(1, 1);
-        assert_eq!(surr, (Some(rbl), None, None, None));
-    }
+    // #[test]
+    // fn surrounding() {
+    //     let rbl = CellContent {content: '╦', right: 2, bottom: 2, left: 2, ..Default::default()};
+    //     let empty = CellContent {content: ' ', ..Default::default()};
+    //     let mut field = Field::new(3,3, vec![rbl, empty]);
+    //     let cell = field.field.get(1,1).unwrap();
+    //     assert!(cell.row == 1 && cell.col== 1 && cell.content == None);
+    //     field.field.get_mut(0, 1).unwrap().content = Some(rbl);
+    //     let surr= field.surrounding(1, 1);
+    //     assert_eq!(surr, (Some(rbl), None, None, None));
+    // }
 }

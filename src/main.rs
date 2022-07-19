@@ -67,7 +67,7 @@ fn main() {
 
 
     let celops = default_chars();
-    let mut field = Field::new(50,50, celops);
+    let mut field = Field::new(10,10, celops);
     while field.to_collapse().len() > 0 {
         field.print();
         println!("----------");
@@ -91,8 +91,11 @@ mod tests {
         let rbl = CellContent {content: '╦', right: 2, bottom: 2, left: 2, ..Default::default()};
         let empty = CellContent { ..Default::default()};
         let celops = vec![trb,trl,tbl,rbl,empty];
+        let mut cell = Cell::default();
+        cell.set_possible(celops.to_owned());
 
-        let possible = Cell::possible(celops.as_slice(), None, None, Some(rbl), None);
+        cell.update_bottom(rbl);
+        let possible = cell.possible.to_owned();
         assert_eq!(2, possible.len());
         println!("{:?}", possible);
         assert!(possible.contains(&empty));
@@ -101,15 +104,18 @@ mod tests {
         assert!(!possible.contains(&tbl));
         assert!(!possible.contains(&rbl));
         assert_eq!(celops.len(), 5);
-        let possible = Cell::possible(celops.as_slice(), Some(trb), Some(empty), None, None);
-        assert_eq!(1, possible.len());
+        cell.set_possible(celops.to_owned());
+        cell.update_top(trb);
+        cell.update_right(empty);
+        assert_eq!(1, cell.possible.len());
     }
 
     #[test]
     fn collapse() {
         let trb = CellContent {content: '╠', top: 2, right: 2, bottom: 2, ..Default::default()};
         let mut cell: Cell = Default::default();
-        cell.collapse(&[trb]);
+        cell.set_possible(vec![trb]);
+        cell.collapse();
         assert!(cell.content.is_some());
     }
 }
