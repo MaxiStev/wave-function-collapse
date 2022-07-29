@@ -1,28 +1,36 @@
+use std::fmt::Display;
+
 use rand::Rng;
 pub mod default;
-pub type CellOp = Option<CellContent>;
+pub type CellOp<T> = Option<CellContent<T>>;
 #[derive(Debug, Clone, Copy)]
-pub struct CellContent {
+pub struct CellContent<Content> {
     pub top: u8,
     pub right: u8,
     pub bottom: u8,
     pub left: u8,
-    pub content: char,
+    pub content: Content,
 }
 
-impl Default for CellContent {
+impl<T: Display> Display for CellContent<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.content)
+    }
+}
+
+impl<T: Default> Default for CellContent<T> {
     fn default() -> Self {
         CellContent {
             top: 0,
             right: 0,
             bottom: 0,
             left: 0,
-            content: ' ',
+            content: T::default(),
         }
     }
 }
 
-impl PartialEq for CellContent {
+impl<T: PartialEq> PartialEq for CellContent<T> {
     fn eq(&self, other: &Self) -> bool {
         self.content == other.content
             && self.top == other.top
@@ -33,32 +41,33 @@ impl PartialEq for CellContent {
 }
 
 #[derive(Clone)]
-pub struct Cell {
-    pub content: CellOp,
+pub struct Cell<T: Clone> {
+    pub content: CellOp<T>,
     pub row: usize,
     pub col: usize,
-    pub possible: Vec<CellContent>,
+    pub possible: Vec<CellContent<T>>,
     //position row, col
 }
-impl PartialEq for Cell {
+impl<T: PartialEq + Clone> PartialEq for Cell<T> {
     fn eq(&self, other: &Self) -> bool {
         self.content == other.content && self.row == other.row && self.col == other.col
     }
 }
-impl Cell {
+
+impl<T: Clone> Cell<T> {
     pub fn entropy(&self) -> usize {
         self.possible.len()
     }
-    pub fn update_top(&mut self, cont: CellContent) {
+    pub fn update_top(&mut self, cont: CellContent<T>) {
         self.possible.retain(|c| c.top == cont.bottom)
     }
-    pub fn update_right(&mut self, cont: CellContent) {
+    pub fn update_right(&mut self, cont: CellContent<T>) {
         self.possible.retain(|c| c.right == cont.left)
     }
-    pub fn update_bottom(&mut self, cont: CellContent) {
+    pub fn update_bottom(&mut self, cont: CellContent<T>) {
         self.possible.retain(|c| c.bottom == cont.top)
     }
-    pub fn update_left(&mut self, cont: CellContent) {
+    pub fn update_left(&mut self, cont: CellContent<T>) {
         self.possible.retain(|c| c.left == cont.right)
     }
     pub fn collapse(&mut self, rng: &mut rand::prelude::ThreadRng) {
@@ -72,14 +81,14 @@ impl Cell {
                 .to_owned(),
         );
     }
-    pub fn set_possible(&mut self, possible: Vec<CellContent>) {
+    pub fn set_possible(&mut self, possible: Vec<CellContent<T>>) {
         self.possible = possible
             .iter()
             .map(|c| c.to_owned())
-            .collect::<Vec<CellContent>>();
+            .collect::<Vec<CellContent<T>>>();
     }
 }
-impl Default for Cell {
+impl<T: Copy> Default for Cell<T> {
     fn default() -> Self {
         Cell {
             content: None,
@@ -94,11 +103,11 @@ impl Default for Cell {
 pub mod test {
     use super::*;
     pub struct DefaultCellContent {
-        pub trb: CellContent,
-        pub trl: CellContent,
-        pub tbl: CellContent,
-        pub rbl: CellContent,
-        pub empty: CellContent,
+        pub trb: CellContent<char>,
+        pub trl: CellContent<char>,
+        pub tbl: CellContent<char>,
+        pub rbl: CellContent<char>,
+        pub empty: CellContent<char>,
     }
     impl DefaultCellContent {
         pub fn new() -> DefaultCellContent {
@@ -141,7 +150,7 @@ pub mod test {
                 empty,
             }
         }
-        pub fn vec(&self) -> Vec<CellContent> {
+        pub fn vec(&self) -> Vec<CellContent<char>> {
             vec![self.trb, self.trl, self.tbl, self.rbl, self.empty]
         }
     }
@@ -179,7 +188,7 @@ pub mod test {
             ..Default::default()
         };
         let mut rng = rand::prelude::thread_rng();
-        let mut cell: Cell = Default::default();
+        let mut cell: Cell<char> = Default::default();
         cell.set_possible(vec![trb]);
         cell.collapse(&mut rng);
         assert!(cell.content.is_some());

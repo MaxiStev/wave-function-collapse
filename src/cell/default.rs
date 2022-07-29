@@ -9,7 +9,7 @@
 //═
 //║
 use super::CellContent;
-pub fn cells() -> Vec<CellContent> {
+pub fn cells() -> Vec<CellContent<char>> {
     vec![
         CellContent {
             content: ' ',

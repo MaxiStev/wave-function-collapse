@@ -1,13 +1,36 @@
+use std::fmt::Display;
+
 use rand::Rng;
 
-use crate::cell::{Cell, CellContent, CellOp};
-pub struct Field {
-    pub field: array2d::Array2D<Cell>,
-    pub allowed_cells: Vec<CellContent>,
+use crate::cell::{Cell, CellContent};
+pub struct Field<T: Clone + Copy> {
+    pub field: array2d::Array2D<Cell<T>>,
+    pub allowed_cells: Vec<CellContent<T>>,
     rng: rand::prelude::ThreadRng,
 }
-impl Field {
-    pub fn new(height: usize, width: usize, allowed_cells: Vec<CellContent>) -> Self {
+
+impl<T: Clone + Copy> Display for Field<T>
+where
+    T: Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use std::fmt::Write;
+        let mut buffer = String::new();
+        for row in self.field.as_rows().iter() {
+            for col in row.iter() {
+                if let Some(content) = col.content {
+                    write!(buffer, "{}", content)?;
+                } else {
+                    write!(buffer, "{}", 'x')?;
+                }
+            }
+            writeln!(buffer)?;
+        }
+        write!(f, "{}", buffer)
+    }
+}
+impl<T: std::clone::Clone + std::fmt::Display + Copy> Field<T> {
+    pub fn new(height: usize, width: usize, allowed_cells: Vec<CellContent<T>>) -> Self {
         let mut field = array2d::Array2D::filled_with(Cell::default(), height, width);
         for row in 0..field.column_len() {
             for col in 0..field.row_len() {
@@ -23,28 +46,13 @@ impl Field {
             rng: rand::prelude::thread_rng(),
         }
     }
-    pub fn print(&self) {
-        for row in self.field.as_rows().iter() {
-            for col in row.iter() {
-                print!(
-                    "{}",
-                    if let Some(content) = col.content {
-                        content.content
-                    } else {
-                        'X'
-                    }
-                );
-            }
-            println!();
-        }
-    }
-    pub fn to_collapse(&self) -> Vec<&Cell> {
+    pub fn to_collapse(&self) -> Vec<&Cell<T>> {
         self.field
             .elements_row_major_iter()
             .filter(|c| c.content.is_none())
-            .collect::<Vec<&Cell>>()
+            .collect::<Vec<&Cell<T>>>()
     }
-    pub fn lowest_entropy(&self) -> Vec<&Cell> {
+    pub fn lowest_entropy(&self) -> Vec<&Cell<T>> {
         let mut to_collapse = self.to_collapse();
 
         let lowest = to_collapse
@@ -56,7 +64,7 @@ impl Field {
         return to_collapse;
     }
 
-    pub fn get_random_cell_to_collapse(&self) -> Option<&Cell> {
+    pub fn get_random_cell_to_collapse(&self) -> Option<&Cell<T>> {
         if self.to_collapse().len() > 0 {
             let to_collapse = self.lowest_entropy();
             let mut rng = rand::prelude::thread_rng();
@@ -68,13 +76,9 @@ impl Field {
             None
         }
     }
-    pub fn complete(&mut self, print: bool, progress: bool) {
+    pub fn complete(&mut self, progress: bool) {
         let total = self.to_collapse().len();
         while self.to_collapse().len() > 0 {
-            if print {
-                self.print();
-                println!("----------");
-            }
             let row: usize;
             let col: usize;
             {
@@ -84,12 +88,12 @@ impl Field {
             }
             self.collapse_cell(row, col);
             if progress {
-            println!("({}/{})", total - self.to_collapse().len(), total);
+                println!("({}/{})", total - self.to_collapse().len(), total);
             }
         }
     }
     pub fn collapse_cell(&mut self, row: usize, col: usize) {
-        let cont: CellContent;
+        let cont: CellContent<T>;
         // let (top, right, bottom, left) = self.surrounding(row, col);
         let cell = self.field.get_mut(row, col).unwrap();
         cell.collapse(&mut self.rng);

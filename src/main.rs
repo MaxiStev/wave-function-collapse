@@ -1,8 +1,8 @@
 mod cell;
-mod field;
 mod cli;
-use field::Field;
+mod field;
 use clap::Parser;
+use field::Field;
 
 fn main() {
     println!("Hello, world!");
@@ -11,6 +11,6 @@ fn main() {
 
     let celops = cell::default::cells();
     let mut field = Field::new(args.height, args.width, celops);
-    field.complete(args.print, args.progress);
-    field.print();
+    field.complete(args.progress);
+    println!("{}", field);
 }
